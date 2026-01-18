@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>World Radio Picker</title>
+  <style>
+    :root{
+      --bg: #101216;
+      --panel: #161a21;
+      --panel2:#12161d;
+      --border:#242b36;
+      --text:#e9eef7;
+      --muted:#9aa7bd;
+      --accent:#6db7ff;      /* light blue */
+      --accent2:#3a86ff;
+      --danger:#ff5c7a;
+      --ok:#44d19d;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(109,183,255,.14), transparent 55%),
+        radial-gradient(900px 600px at 85% 30%, rgba(58,134,255,.10), transparent 55%),
+        linear-gradient(180deg, #0c0e12, var(--bg));
+      color:var(--text);
+      overflow-x:hidden;
+    }
+
+    /* subtle animated grain */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='210'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='210' height='210' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+      mix-blend-mode:overlay;
+      opacity:.18;
+      animation: drift 14s linear infinite;
+      transform: translate3d(0,0,0);
+    }
+    @keyframes drift{
+      from{transform:translate3d(0,0,0)}
+      to{transform:translate3d(-210px,-210px,0)}
+    }
+
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:24px 16px 40px;
+    }
+
+    header{
+      display:flex;
+      flex-wrap:wrap;
+      gap:14px;
+      align-items:flex-end;
+      justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:6px;
+    }
+    h1{
+      margin:0;
+      font-size: clamp(20px, 2.3vw, 30px);
+      letter-spacing:.2px;
+    }
+    .sub{
+      color:var(--muted);
+      font-size: 13px;
+      line-height:1.4;
+      max-width: 720px;
+    }
+
+    .pill{
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(109,183,255,.6);
+    }
+    .tiny{
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 920px){
+      .grid{grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .head{
+      padding:16px 16px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .card .head h2{
+      margin:0;
+      font-size: 15px;
+      letter-spacing:.2px;
+      color:#dbe7ff;
+    }
+    .card .body{
+      padding:16px;
+    }
+
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    .field{
+      flex:1 1 220px;
+      min-width: 220px;
+    }
+
+    .input, select{
+      width:100%;
+      height:44px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,16,.35);
+      color: var(--text);
+      padding: 0 12px;
+      outline:none;
+      transition: border .15s ease, box-shadow .15s ease, transform .05s ease;
+    }
+    .input:focus, select:focus{
+      border-color: rgba(109,183,255,.55);
+      box-shadow: 0 0 0 4px rgba(109,183,255,.14);
+    }
+
+    .btn{
+      height:44px;
+      padding:0 14px;
+      border-radius: 14px;
+      border:1px solid rgba(109,183,255,.30);
+      background:
+        linear-gradient(180deg, rgba(109,183,255,.18), rgba(109,183,255,.08));
+      color:#dfeeff;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+      transition: transform .05s ease, filter .15s ease, border .15s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{ filter: brightness(1.08); border-color: rgba(109,183,255,.55); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.secondary{
+      border-color: rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      color:#f1f5ff;
+    }
+    .btn.danger{
+      border-color: rgba(255,92,122,.35);
+      background: linear-gradient(180deg, rgba(255,92,122,.18), rgba(255,92,122,.07));
+    }
+
+    .hint{
+      margin-top:10px;
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.45;
+    }
+
+    .stationBox{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(10,12,16,.22);
+      border-radius: 16px;
+    }
+    .fav{
+      width:46px;height:46px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.15);
+      display:grid; place-items:center;
+      overflow:hidden;
+      flex: 0 0 auto;
+    }
+    .fav img{width:100%;height:100%;object-fit:cover}
+    .meta{
+      min-width:0;
+      display:flex; flex-direction:column; gap:4px;
+      flex:1 1 auto;
+    }
+    .meta .name{
+      font-size:14px;
+      font-weight:650;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .meta .info{
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .status{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,16,.22);
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+    .status strong{color:#dfeeff}
+    .status .ok{color:var(--ok)}
+    .status .bad{color:var(--danger)}
+
+    audio{
+      width:100%;
+      margin-top:12px;
+      border-radius: 14px;
+      background: rgba(10,12,16,.22);
+      border:1px solid rgba(255,255,255,.10);
+    }
+
+    .list{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+
+    .tagRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:8px;
+    }
+    .tag{
+      font-size:11px;
+      color:#d9e9ff;
+      border:1px solid rgba(109,183,255,.22);
+      background: rgba(109,183,255,.08);
+      padding:6px 10px;
+      border-radius: 999px;
+      max-width:100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .footer{
+      margin-top:16px;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.45;
+      opacity:.95;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:11px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      padding:2px 6px;
+      border-radius: 7px;
+      color:#dfeeff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>World Radio Picker</h1>
+        <div class="sub">
+          Pick a country → pick a station → hit play.
+          Random buttons help you discover new stations fast.
+        </div>
+      </div>
+      <div class="pill" title="Live station list">
+        <span class="dot"></span>
+        <div class="tiny"><span id="counts">Loading…</span></div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: Controls -->
+      <section class="card">
+        <div class="head">
+          <h2>Choose</h2>
+          <div class="row">
+            <button class="btn secondary" id="btnRandCountry" type="button">🎲 Random Country</button>
+            <button class="btn secondary" id="btnRandStation" type="button">🎧 Random Station</button>
+            <button class="btn" id="btnRandBoth" type="button">✨ Random Both</button>
+          </div>
+        </div>
+
+        <div class="body">
+          <div class="row">
+            <div class="field">
+              <label for="countrySearch">Search country</label>
+              <input class="input" id="countrySearch" placeholder="Type to filter countries…" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="countrySelect">Country</label>
+              <select id="countrySelect"></select>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="row">
+            <div class="field">
+              <label for="stationSearch">Search station</label>
+              <input class="input" id="stationSearch" placeholder="Type to filter stations…" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="stationSelect">Station</label>
+              <select id="stationSelect"></select>
+            </div>
+          </div>
+
+          <div class="hint">
+            Tip: some stations are geo-blocked or temporarily offline. If one doesn’t play, hit <span class="kbd">Random Station</span>.
+          </div>
+
+          <div class="status" id="statusBox">
+            <strong>Status:</strong> <span id="statusText">Preparing…</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Now Playing -->
+      <aside class="card">
+        <div class="head">
+          <h2>Now Playing</h2>
+          <button class="btn danger" id="btnStop" type="button">⏹ Stop</button>
+        </div>
+        <div class="body">
+          <div class="stationBox">
+            <div class="fav" id="faviconBox" aria-hidden="true">🌐</div>
+            <div class="meta">
+              <div class="name" id="npName">Nothing selected</div>
+              <div class="info" id="npInfo">Pick a country and station.</div>
+              <div class="tagRow" id="npTags"></div>
+            </div>
+          </div>
+
+          <audio id="player" controls preload="none" crossorigin="anonymous"></audio>
+
+          <div class="footer">
+            Uses the community Radio Browser directory to fetch countries + stations live. :contentReference[oaicite:1]{index=1}
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    /***************
+     * Radio Browser API base
+     * We use the "all" host for convenience. (If it ever fails, swap to a specific mirror like https://de1.api.radio-browser.info)
+     ***************/
+    const API_BASE = "https://all.api.radio-browser.info";
+    const USER_AGENT = "WorldRadioPicker/1.0 (static web demo)";
+
+    // UI
+    const countsEl = document.getElementById("counts");
+    const statusText = document.getElementById("statusText");
+    const countrySearch = document.getElementById("countrySearch");
+    const stationSearch = document.getElementById("stationSearch");
+    const countrySelect = document.getElementById("countrySelect");
+    const stationSelect = document.getElementById("stationSelect");
+    const btnRandCountry = document.getElementById("btnRandCountry");
+    const btnRandStation = document.getElementById("btnRandStation");
+    const btnRandBoth = document.getElementById("btnRandBoth");
+    const btnStop = document.getElementById("btnStop");
+
+    const player = document.getElementById("player");
+    const faviconBox = document.getElementById("faviconBox");
+    const npName = document.getElementById("npName");
+    const npInfo = document.getElementById("npInfo");
+    const npTags = document.getElementById("npTags");
+
+    // Data caches
+    let allCountries = [];      // { code, name, stationcount }
+    let filteredCountries = [];
+    let currentStations = [];   // station objects from API
+    let filteredStations = [];
+    let selectedCountryCode = null;
+
+    // Intl helper for country names
+    const regionNames = (() => {
+      try { return new Intl.DisplayNames([navigator.language || "en"], { type: "region" }); }
+      catch { return null; }
+    })();
+
+    function countryNameFromCode(code){
+      if (!code) return "";
+      if (regionNames) {
+        const name = regionNames.of(code.toUpperCase());
+        if (name) return name;
+      }
+      return code.toUpperCase();
+    }
+
+    function setStatus(msg, kind="info"){
+      const prefix = kind === "ok" ? "✅ " : kind === "bad" ? "⚠️ " : "ℹ️ ";
+      statusText.innerHTML = `<span class="${kind === "ok" ? "ok" : kind === "bad" ? "bad" : ""}">${prefix}${escapeHtml(msg)}</span>`;
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, s => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[s]));
+    }
+
+    async function apiGet(path){
+      const url = API_BASE + path;
+      const res = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
+      return res.json();
+    }
+
+    function fillSelect(selectEl, items, getLabel, getValue, placeholder){
+      selectEl.innerHTML = "";
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = placeholder;
+      ph.disabled = true;
+      ph.selected = true;
+      selectEl.appendChild(ph);
+
+      for (const it of items){
+        const opt = document.createElement("option");
+        opt.value = getValue(it);
+        opt.textContent = getLabel(it);
+        selectEl.appendChild(opt);
+      }
+    }
+
+    function clampTags(tags){
+      if (!tags) return [];
+      // Radio Browser tags are comma separated string
+      return tags.split(",")
+        .map(t => t.trim())
+        .filter(Boolean)
+        .slice(0, 10);
+    }
+
+    function updateNowPlaying(station){
+      if (!station){
+        faviconBox.textContent = "🌐";
+        faviconBox.innerHTML = "🌐";
+        npName.textContent = "Nothing selected";
+        npInfo.textContent = "Pick a country and station.";
+        npTags.innerHTML = "";
+        return;
+      }
+
+      // favicon
+      faviconBox.innerHTML = "";
+      if (station.favicon){
+        const img = document.createElement("img");
+        img.src = station.favicon;
+        img.alt = "";
+        img.loading = "lazy";
+        img.onerror = () => { faviconBox.textContent = "🎵"; };
+        faviconBox.appendChild(img);
+      } else {
+        faviconBox.textContent = "🎵";
+      }
+
+      npName.textContent = station.name || "Unknown station";
+      const parts = [];
+      if (station.codec) parts.push(station.codec.toUpperCase());
+      if (typeof station.bitrate === "number" && station.bitrate > 0) parts.push(`${station.bitrate} kbps`);
+      if (station.countrycode) parts.push(countryNameFromCode(station.countrycode));
+      if (station.language) parts.push(station.language);
+      npInfo.textContent = parts.join(" • ") || "—";
+
+      npTags.innerHTML = "";
+      const tags = clampTags(station.tags);
+      for (const t of tags){
+        const span = document.createElement("span");
+        span.className = "tag";
+        span.textContent = t;
+        npTags.appendChild(span);
+      }
+    }
+
+    function stopAudio(){
+      try{
+        player.pause();
+        player.removeAttribute("src");
+        player.load();
+      } catch {}
+    }
+
+    async function loadCountries(){
+      setStatus("Loading country list…");
+      // Using country codes list so we can show ALL supported codes and map name locally
+      const codes = await apiGet("/json/countrycodes?order=name&reverse=false&hidebroken=true");
+      allCountries = (codes || [])
+        .map(x => ({
+          code: String(x.name || "").toUpperCase(),
+          stationcount: Number(x.stationcount || 0),
+          name: countryNameFromCode(String(x.name || ""))
+        }))
+        .filter(x => x.code && x.stationcount > 0)
+        .sort((a,b) => a.name.localeCompare(b.name));
+
+      filteredCountries = allCountries.slice();
+
+      fillSelect(
+        countrySelect,
+        filteredCountries,
+        c => `${c.name} (${c.stationcount.toLocaleString()})`,
+        c => c.code,
+        "Select a country…"
+      );
+
+      countsEl.textContent = `${allCountries.length.toLocaleString()} countries available`;
+      setStatus("Pick a country to load stations.", "ok");
+    }
+
+    function filterCountries(){
+      const q = countrySearch.value.trim().toLowerCase();
+      filteredCountries = !q
+        ? allCountries.slice()
+        : allCountries.filter(c =>
+            c.name.toLowerCase().includes(q) ||
+            c.code.toLowerCase().includes(q)
+          );
+
+      const previous = countrySelect.value;
+      fillSelect(
+        countrySelect,
+        filteredCountries,
+        c => `${c.name} (${c.stationcount.toLocaleString()})`,
+        c => c.code,
+        "Select a country…"
+      );
+
+      // try keep selection if still present
+      if (previous && filteredCountries.some(c => c.code === previous)){
+        countrySelect.value = previous;
+      }
+    }
+
+    function filterStations(){
+      const q = stationSearch.value.trim().toLowerCase();
+      filteredStations = !q
+        ? currentStations.slice()
+        : currentStations.filter(s =>
+            (s.name || "").toLowerCase().includes(q) ||
+            (s.tags || "").toLowerCase().includes(q) ||
+            (s.codec || "").toLowerCase().includes(q)
+          );
+
+      const previous = stationSelect.value;
+      fillSelect(
+        stationSelect,
+        filteredStations,
+        s => {
+          const codec = s.codec ? ` • ${String(s.codec).toUpperCase()}` : "";
+          const br = (typeof s.bitrate === "number" && s.bitrate > 0) ? ` • ${s.bitrate} kbps` : "";
+          return `${s.name || "Unknown"}${codec}${br}`;
+        },
+        s => s.stationuuid,
+        currentStations.length ? "Select a station…" : "No stations loaded yet…"
+      );
+
+      if (previous && filteredStations.some(s => s.stationuuid === previous)){
+        stationSelect.value = previous;
+      }
+    }
+
+    async function loadStationsForCountry(countryCode){
+      selectedCountryCode = countryCode;
+      stopAudio();
+      updateNowPlaying(null);
+
+      if (!countryCode){
+        currentStations = [];
+        filteredStations = [];
+        filterStations();
+        return;
+      }
+
+      setStatus(`Loading stations for ${countryNameFromCode(countryCode)}…`);
+
+      // Advanced search endpoint:
+      // /json/stations/search?countrycode=GB&countrycodeExact=true&hidebroken=true&order=clickcount&reverse=true&limit=500
+      // Keep limit reasonable for speed; search box lets you find within.
+      const path =
+        `/json/stations/search?countrycode=${encodeURIComponent(countryCode)}&countrycodeExact=true` +
+        `&hidebroken=true&order=clickcount&reverse=true&limit=600`;
+
+      const stations = await apiGet(path);
+
+      // Basic cleanup: keep only stations with a resolved URL
+      currentStations = (stations || [])
+        .filter(s => s && (s.url_resolved || s.url) && s.stationuuid)
+        .slice(0, 600);
+
+      filteredStations = currentStations.slice();
+      filterStations();
+
+      countsEl.textContent =
+        `${allCountries.length.toLocaleString()} countries • ` +
+        `${currentStations.length.toLocaleString()} stations loaded`;
+
+      setStatus(`Loaded ${currentStations.length.toLocaleString()} stations. Pick one to play.`, "ok");
+    }
+
+    async function playStationByUuid(stationuuid){
+      const station = currentStations.find(s => s.stationuuid === stationuuid) ||
+                      filteredStations.find(s => s.stationuuid === stationuuid);
+
+      if (!station){
+        setStatus("Station not found.", "bad");
+        return;
+      }
+
+      updateNowPlaying(station);
+      setStatus("Resolving stream URL…");
+
+      // Best practice: call the click/resolve endpoint so you get the final URL and it counts as a click.
+      // /json/url/{stationuuid}
+      let streamUrl = station.url_resolved || station.url;
+
+      try{
+        const clickData = await apiGet(`/json/url/${encodeURIComponent(station.stationuuid)}`);
+        if (clickData && clickData.url) streamUrl = clickData.url;
+      } catch (e){
+        // fallback to existing resolved URL
+      }
+
+      if (!streamUrl){
+        setStatus("This station has no playable stream URL.", "bad");
+        return;
+      }
+
+      try{
+        player.src = streamUrl;
+        await player.play();
+        setStatus("Playing.", "ok");
+      } catch (e){
+        setStatus("Could not start playback (maybe blocked or offline). Try another station.", "bad");
+      }
+    }
+
+    function pickRandom(arr){
+      if (!arr || !arr.length) return null;
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    async function randomCountry(){
+      const c = pickRandom(filteredCountries.length ? filteredCountries : allCountries);
+      if (!c) return;
+      countrySelect.value = c.code;
+      await loadStationsForCountry(c.code);
+    }
+
+    async function randomStation(){
+      if (!selectedCountryCode){
+        await randomCountry();
+      }
+      if (!currentStations.length){
+        setStatus("No stations to randomize yet. Pick a country first.", "bad");
+        return;
+      }
+      const s = pickRandom(filteredStations.length ? filteredStations : currentStations);
+      if (!s) return;
+      stationSelect.value = s.stationuuid;
+      await playStationByUuid(s.stationuuid);
+    }
+
+    async function randomBoth(){
+      await randomCountry();
+      await randomStation();
+    }
+
+    // Events
+    countrySearch.addEventListener("input", filterCountries);
+
+    countrySelect.addEventListener("change", async () => {
+      const code = countrySelect.value;
+      stationSearch.value = "";
+      await loadStationsForCountry(code);
+    });
+
+    stationSearch.addEventListener("input", filterStations);
+
+    stationSelect.addEventListener("change", async () => {
+      const uuid = stationSelect.value;
+      await playStationByUuid(uuid);
+    });
+
+    btnRandCountry.addEventListener("click", randomCountry);
+    btnRandStation.addEventListener("click", randomStation);
+    btnRandBoth.addEventListener("click", randomBoth);
+
+    btnStop.addEventListener("click", () => {
+      stopAudio();
+      setStatus("Stopped.", "ok");
+    });
+
+    // Autopause on page hidden (mobile-friendly)
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        try { player.pause(); } catch {}
+      }
+    });
+
+    // Init
+    (async function init(){
+      try{
+        await loadCountries();
+      } catch (e){
+        countsEl.textContent = "Could not load countries";
+        setStatus("Failed to load country list. Check your internet connection.", "bad");
+      }
+    })();
+  </script>
+</body>
+</html>
